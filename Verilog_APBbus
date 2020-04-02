@@ -1,1 +1,113 @@
+module APB_simp#(
+	parameter	AW = 9,
+	parameter	DW = 9)//简化的APB总线控制模型
+(
+	input		rst_n,
+	input		clk,
+	//input		a_pwrite,//读写使能信号，1为写，0为读
+	input		a_psel,
+	input		a_penable,
+	input		[DW-1:0]a_pwdata,
+	output	reg a_pready,
+	
+	input    b_pready,
+	//output	reg b_pwrite,
+	output	reg b_psel,
+	output	reg b_penable,
+	output	reg [DW-1:0]b_pwdata
+	
+); 
+reg	a_apb_req;
+reg	a2b_apb_req_dff1,a2b_apb_req_dff2,a2b_apb_req_dff3;
+wire	a2b_apb_req_edge;
+reg	a2b_apb_req_edge_dff;
+reg	b_pready_req;
+reg	b2a_pready_req_dff1,b2a_pready_req_dff2,b2a_pready_req_dff3;
+wire	b2a_pready_req_edge;
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		a_apb_req <= 1'b0;
+	else if((a_psel == 1'b1)&&(a_penable == 1'b0))
+		a_apb_req <= ~a_apb_req;
+end
+always@(posedge clk or negedge rst_n)//后延3个时钟，有助于同步信号
+begin
+	if(!rst_n)begin
+		a2b_apb_req_dff1 <= 1'b0;
+		a2b_apb_req_dff2 <= 1'b0;
+		a2b_apb_req_dff3 <= 1'b0;
+	end
+	else begin
+		a2b_apb_req_dff1 <= a_apb_req;
+		a2b_apb_req_dff2 <= a2b_apb_req_dff1;
+		a2b_apb_req_dff3 <= a2b_apb_req_dff2;
+	end
+end
+assign a2b_apb_req_edge = a2b_apb_req_dff3 ^ a2b_apb_req_dff2;
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		b_psel <= 1'b0;
+	else if(b_pready == 1'b1 && b_psel == 1'b1 && b_penable == 1'b1)
+		b_psel <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_psel <= 1'b1;
+end
+always@(posedge clk or negedge rst_n)//读写使能发送
+begin
+	if(!rst_n)
+		b_pwdata <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_pwdata <= a_pwdata;
+end
+always@(posedge clk or negedge rst_n)//延后一个时钟，协助使能信号b_penable
+begin
+	if(!rst_n)
+		a2b_apb_req_edge_dff <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		a2b_apb_req_edge_dff <= 1'b1;
+	else
+		a2b_apb_req_edge_dff <= 1'b0;
+end
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		b_penable <= 1'b0;
+	else if(b_pready == 1'b1 && b_psel == 1'b1 && b_penable == 1'b1)
+		b_penable <= 1'b0;
+	else if(a2b_apb_req_edge_dff == 1'b1)
+		b_penable <= 1'b1;
+end
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		b_pready_req <= 1'b0;
+	else if(b_pready == 1'b1 && b_psel == 1'b1 && b_penable == 1'b1)
+		b_pready_req <= ~b_pready_req;
+end
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)begin
+		b2a_pready_req_dff1 <= 1'b0;
+		b2a_pready_req_dff2 <= 1'b0;
+		b2a_pready_req_dff3 <= 1'b0;
+	end
+	else begin
+		b2a_pready_req_dff1 <= b_pready_req;
+		b2a_pready_req_dff2 <= b2a_pready_req_dff1;
+		b2a_pready_req_dff3 <= b2a_pready_req_dff2;
+	end
+end
+assign b2a_pready_req_edge = b2a_pready_req_dff3 ^ b2a_pready_req_dff2;
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		a_pready <= 1'b0;
+	else if(b2a_pready_req_edge == 1'b1)
+		a_pready <= 1'b1;
+	else if(a_psel == 1'b1 && a_penable == 1'b1)
+		a_pready <= 1'b0;
+end
+endmodule
 
