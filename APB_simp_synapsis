@@ -1,0 +1,150 @@
+module synapsis(
+	input 	clk,
+	input 	rst_n,
+	input		learn,
+	input		pre,   //突触前神经元接口
+	input		post,  //突触后神经元接口
+	input    random_weight,
+	//ABP总线控制端口
+	output	reg a_psel,
+	output	reg a_penable,
+	output	reg signed[8:0]a_pwdata,
+	input	   a_pready
+);
+
+reg  [5:0]current_state; 
+reg  [5:0]next_state; 
+reg   pre_re;//a_penable信号延后一拍使能
+reg  [7:0]cnt1;
+localparam
+		S0 = 6'b000001, //初始化状态，突触现处于没有起作用的状态（突触在这一阶段随机化）
+		S1 = 6'b000010, //模式输入状态，通过竞争进入下一个存储模式的状态
+		S2 = 6'b000100, //输出神经元先被激活，这一突触已经存储为0
+		S3 = 6'b001000, //输出神经元先被激活，这一突触已经存储为1
+		S4 = 6'b010000, //判断条件为1时，突触权重输出0，保证其他模型的其他突触的竞争学习
+		S5 = 6'b100000;
+		
+ 		
+reg  signed [8:0]set_weight;//判断条件为0时，突触在特定的条件下进行调整
+reg  signed [8:0]rev_weight;
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		cnt1 <= 8'd0;
+	else if(pre == 1'b1 || cnt1 >= 8'd100)
+		cnt1 <= 8'd0;
+	else
+		cnt1 <= cnt1 + 8'd1;
+end
+//定义一个三段式状态机，判断突触处于哪个阶段
+always@(posedge clk or negedge rst_n)//第一段：同步时序描述状态转移
+begin                  
+	if(!rst_n)
+		  current_state <= S0;
+	else
+		  current_state <= next_state;
+end
+
+always@(*)//第二段：组合逻辑判断状态转移条件
+begin
+	next_state = S0;
+	case(current_state)
+		S0:begin //在没有输入突触的前神经元脉冲，而输入后神经元脉冲，设定此时存储的模型为0值模型
+			if(post == 1'b1)
+				next_state = S2;
+			else if(pre == 1'b1)
+				next_state = S1;
+			else
+				next_state = S0;
+		end
+		S1:begin
+			if(post == 1'b1)
+				next_state = S3;
+			else if(cnt1 == 8'd20)
+				next_state = S0;
+			else
+				next_state = S1;
+		end
+		S2:begin
+			if(learn == 1 && rev_weight < -9'd15)//标志位的判断，如果标志位为高的时候证明有新的模式需要学习，否则保持
+				next_state = S4;
+			else
+				next_state = S2;
+		end
+		S3:begin
+			if(learn == 1 && set_weight > 9'd15)//标志位的判断，如果标志位为高的时候证明有新的模式需要学习，否则保持
+				next_state = S5;
+			else
+				next_state = S3;
+		end
+		S4:begin
+			if(learn == 0)
+				next_state = S2;
+			else
+				next_state = S4;
+		end
+		S5:begin
+			if(learn == 0)
+				next_state = S3;
+			else
+				next_state = S5;
+		end
+		default:next_state = S0;
+	endcase
+end
+
+always@(posedge clk or negedge rst_n)////时序电路描述状态输出
+begin
+	if(!rst_n)begin
+		set_weight <= 9'd1;
+		a_pwdata <= 9'd0;
+		rev_weight <= -9'd1;
+	end
+	else begin
+		case(current_state)
+			S0:a_pwdata <= random_weight;
+			S1:a_pwdata <= random_weight;
+			S2:begin //寄存为0时的状态
+				if(post == 1'b1 && rev_weight > -9'd15)
+					rev_weight <= rev_weight + rev_weight;
+				else
+					a_pwdata <= rev_weight;
+			end
+			S3:begin //寄存为1时的状态
+				if(post == 1'b1 && set_weight < 9'd15)
+					set_weight <= set_weight + set_weight;
+				else
+					a_pwdata <= set_weight;
+			end
+			S4:a_pwdata <= 9'd0;
+			S5:a_pwdata <= 9'd0;
+		endcase
+	end
+end
+//ABP总线控制端口
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		 a_psel <= 1'b0;	
+	else if(a_pready == 1'b1)
+		 a_psel <= 1'b0;
+	else if(pre == 1'b1)
+		 a_psel <= 1'b1;
+end
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		 pre_re <= 1'b0;
+	else 
+		 pre_re <= pre;
+end
+always@(posedge clk or negedge rst_n)
+begin
+	if(!rst_n)
+		a_penable <= 1'b0;
+	else if(a_pready == 1'b1)
+		a_penable <= 1'b0;
+	else if(pre_re == 1'b1)
+		a_penable <= pre_re;
+end
+endmodule
