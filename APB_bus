@@ -1,0 +1,165 @@
+module APB_bus#(
+	parameter	AW = 32,
+	parameter	PROT_W = 3,
+	parameter	PSTRB_w = 4,
+	parameter	DW = 32)
+(
+	input		a_rst_n,
+	input		a_clk,
+	input		a_pwrite,
+	input		a_psel,
+	input		a_penable,
+	input		[PROT_W-1:0]a_pprot,
+	input		[AW-1:0]a_padder,
+	input		[DW-1:0]a_pwdata,
+	input		[PSTRB_w-1:0]a_pstrb,
+	output	reg a_pready,
+	output	reg a_pslverr,
+	output	reg [DW-1:0]a_prdata,
+	
+	input		b_rst_n,
+	input		b_clk,
+	output	reg b_pwrite,
+	output	reg b_psel,
+	output	reg b_penable,
+	output	reg [PROT_W-1:0]b_pprot,
+	output	reg [AW-1:0]b_padder,
+	output	reg [DW-1:0]b_pwdata,
+	output	reg [PSTRB_w-1:0]b_pstrb,
+	input    b_pready,
+	input		b_pslverr,
+	input		[DW-1:0]b_prdata
+); 
+reg	a_apb_req;
+reg	a2b_apb_req_dff1,a2b_apb_req_dff2,a2b_apb_req_dff3;
+wire	a2b_apb_req_edge;
+reg	a2b_apb_req_edge_dff;
+reg	b_pready_req;
+reg	b2a_pready_req_dff1,b2a_pready_req_dff2,b2a_pready_req_dff3;
+wire	b2a_pready_req_edge;
+always@(posedge a_clk or negedge a_rst_n)
+begin
+	if(!a_rst_n)
+		a_apb_req <= 1'b0;
+	else if((a_psel == 1'b1)&&(a_penable == 1'b0))
+		a_apb_req <= ~a_apb_req;	
+end
+always@(posedge b_clk or negedge b_rst_n)//后延3个时钟，有助于同步信号
+begin
+	if(!b_rst_n)begin
+		a2b_apb_req_dff1 <= 1'b0;
+		a2b_apb_req_dff2 <= 1'b0;
+		a2b_apb_req_dff3 <= 1'b0;
+	end
+	else begin
+		a2b_apb_req_dff1 <= a_apb_req;
+		a2b_apb_req_dff2 <= a2b_apb_req_dff1;
+		a2b_apb_req_dff3 <= a2b_apb_req_dff2;
+	end
+end
+assign a2b_apb_req_edge = a2b_apb_req_dff3 ^ a2b_apb_req_dff2;
+always@(posedge b_clk or negedge b_rst_n)
+begin
+	if(!b_rst_n)
+		b_psel <= 1'b0;
+	else if(b_pready == 1'b1 && b_psel == 1'b1 && b_penable == 1'b1)
+		b_psel <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_psel <= 1'b1;
+end
+always@(posedge b_clk or negedge b_rst_n)//读写使能发送
+begin
+	if(b_rst_n == 1'b0)
+		b_pwrite <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_pwrite <= a_pwrite;
+end
+always@(posedge b_clk or negedge b_rst_n)
+begin
+	if(b_rst_n == 1'b0)
+		b_pprot <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_pprot <= a_pprot;
+end
+always@(posedge b_clk or negedge b_rst_n)
+begin
+	if(b_rst_n == 1'b0)
+		b_padder <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_padder <= a_padder;
+end
+always@(posedge b_clk or negedge b_rst_n)//读写数据发送
+begin
+	if(b_rst_n == 1'b0)
+		b_pwdata <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_pwdata <= a_pwdata;
+end
+always@(posedge b_clk or negedge b_rst_n)
+begin
+	if(b_rst_n == 1'b0)
+		b_pstrb <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		b_pstrb <= a_pstrb;
+end
+always@(posedge b_clk or negedge b_rst_n)//延后一个时钟，协助使能信号b_penable
+begin
+	if(b_rst_n == 1'b0)
+		a2b_apb_req_edge_dff <= 1'b0;
+	else if(a2b_apb_req_edge == 1'b1)
+		a2b_apb_req_edge_dff <= a2b_apb_req_edge;
+end
+always@(posedge b_clk or negedge b_rst_n)
+begin
+	if(!b_rst_n)
+		b_penable <= 1'b0;
+	else if(b_pready == 1'b1 && b_psel == 1'b1 && b_penable == 1'b1)
+		b_penable <= 1'b0;
+	else if(a2b_apb_req_edge_dff == 1'b1)
+		b_penable <= 1'b1;
+end
+always@(posedge b_clk or negedge b_rst_n)
+begin
+	if(!b_rst_n)
+		b_pready_req <= 1'b0;
+	else if(b_pready == 1'b1 && b_psel == 1'b1 && b_penable == 1'b1)
+		b_pready_req <= ~b_pready_req;
+end
+always@(posedge a_clk or negedge a_rst_n)
+begin
+	if(!a_rst_n)begin
+		b2a_pready_req_dff1 <= 1'b0;
+		b2a_pready_req_dff2 <= 1'b0;
+		b2a_pready_req_dff3 <= 1'b0;
+	end
+	else begin
+		b2a_pready_req_dff1 <= b_pready_req;
+		b2a_pready_req_dff2 <= b2a_pready_req_dff1;
+		b2a_pready_req_dff3 <= b2a_pready_req_dff2;
+	end
+end
+assign b2a_pready_req_edge = b2a_pready_req_dff3 ^ b2a_pready_req_dff2;
+always@(posedge a_clk or negedge a_rst_n)
+begin
+	if(a_rst_n == 1'b0)
+		a_pready <= 1'b1;
+	else if(a_psel == 1'b1 && a_penable == 1'b1)
+		a_pready <= 1'b0;
+	else if(b2a_pready_req_edge == 1'b1)
+		a_pready <= 1'b1;
+end
+always@(posedge a_clk or negedge a_rst_n)
+begin
+	if(a_rst_n == 1'b0)
+		a_pslverr <= 1'b0;
+	else if(b2a_pready_req_edge == 1'b1)
+		a_pslverr <= b_pslverr;
+end
+always@(posedge a_clk or negedge a_rst_n)
+begin
+	if(a_rst_n == 1'b0)
+		a_prdata <= 1'b0;
+	else if(b2a_pready_req_edge == 1'b1)
+		a_prdata <= b_prdata;
+end
+endmodule
