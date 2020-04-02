@@ -1,0 +1,63 @@
+module APB_system(
+	input		clk,
+	input		rst_n,
+	input		learn,
+	input		random_weight,
+	input    pre,
+	input		inhibition,
+	
+	output	spike
+);
+wire   post;
+wire   a_pready;
+wire	 a_psel;
+wire   a_penable;
+wire   [8:0]a_pwdata;
+
+wire	 b_pready;
+wire	 b_psel;
+wire	 b_penable;
+wire	 [8:0]b_pwdata;
+		
+synapsis u0_synapsis(
+   .clk     		(clk),
+	.rst_n   		(rst_n),
+	.learn			(learn),
+	.pre     		(pre),   
+	.post    		(post),  
+	.random_weight (random_weight),
+	.a_pready      (a_pready),
+	
+	.a_psel			(a_psel),
+	.a_penable		(a_penable),
+	.a_pwdata		(a_pwdata)
+);
+APB_simp u0_APB_simp(
+	.clk    			(clk),
+	.rst_n  			(rst_n),
+	.a_psel			(a_psel),
+	.a_penable		(a_penable),
+	.a_pwdata		(a_pwdata),
+	.a_pready		(a_pready),
+	
+	.b_pready		(b_pready),
+	.b_psel			(b_psel),
+	.b_penable		(b_penable),
+	.b_pwdata		(b_pwdata)
+);
+out_neuron u0_out_neuron(
+	.clk				(clk),
+	.rst_n			(rst_n),
+	.learn			(learn),
+	.inhibition		(inhibition),
+	.b_psel			(b_psel),
+	.b_penable	 	(b_penable),
+	.in_weight	   (b_pwdata),
+	
+	.spike			(spike),
+	.out_inhibition(post),
+	.b_pready	 	(b_pready)
+);
+endmodule
+
+
