@@ -1,0 +1,398 @@
+module system_top(
+	input		clk,
+	input		rst_n,
+	input		learn,
+	input		[3:0]in_cnt,//输入模型
+	input		[24:0]random_model,
+	input		[25:1]random_synapsis,
+	
+	output	[9:0]spike
+);
+wire	[25:1]random_synapsis0,random_synapsis1,random_synapsis2,random_synapsis3,random_synapsis4;
+wire	[25:1]random_synapsis5,random_synapsis6,random_synapsis7,random_synapsis8,random_synapsis9;
+
+wire	[25:1]model;
+wire	[25:1]pre;
+wire	[25:1]weight_up1,weight_up2,weight_up3,weight_up4,weight_up5,weight_up6,weight_up7,weight_up8,weight_up9,weight_up0;
+wire	[25:1]weight_down1,weight_down2,weight_down3,weight_down4,weight_down5,weight_down6,weight_down7,weight_down8,weight_down9,weight_down0;
+
+wire	[9:0]post;
+wire	inhibition0,inhibition1,inhibition2,inhibition3,inhibition4,inhibition5,inhibition6,inhibition7,inhibition8,inhibition9;
+wire	out_inhi0,out_inhi1,out_inhi2,out_inhi3,out_inhi4,out_inhi5,out_inhi6,out_inhi7,out_inhi8,out_inhi9;
+
+top_wire u0_top_wire(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.random_synapsis	(random_synapsis),
+		.out_inhi0			(out_inhi0),	
+		.out_inhi1			(out_inhi1),
+		.out_inhi2			(out_inhi2),
+		.out_inhi3			(out_inhi3),
+		.out_inhi4			(out_inhi4),
+		.out_inhi5			(out_inhi5),
+		.out_inhi6			(out_inhi6),
+		.out_inhi7			(out_inhi7),
+		.out_inhi8			(out_inhi8),
+		.out_inhi9			(out_inhi9),
+		
+		.inhibition0		(inhibition0),
+		.inhibition1		(inhibition1),
+		.inhibition2		(inhibition2),
+		.inhibition3		(inhibition3),
+		.inhibition4		(inhibition4),
+		.inhibition5		(inhibition5),
+		.inhibition6		(inhibition6),
+		.inhibition7		(inhibition7),
+		.inhibition8		(inhibition8),
+		.inhibition9		(inhibition9),
+		.random_synapsis0	(random_synapsis0),
+		.random_synapsis1	(random_synapsis1),
+		.random_synapsis2	(random_synapsis2),
+		.random_synapsis3	(random_synapsis3),
+		.random_synapsis4	(random_synapsis4),
+		.random_synapsis5	(random_synapsis5),
+		.random_synapsis6	(random_synapsis6),
+		.random_synapsis7	(random_synapsis7),
+		.random_synapsis8	(random_synapsis8),
+		.random_synapsis9	(random_synapsis9)
+);
+new_cache u0_new_cache(
+		.clk						(clk),
+		.rst_n					(rst_n),
+		.in_cnt					(in_cnt),
+		.random_model			(random_model),
+		.learn					(learn),
+		
+		.output_model1			(model[1]),
+		.output_model2			(model[2]),
+		.output_model3			(model[3]),
+		.output_model4			(model[4]),
+		.output_model5			(model[5]),
+		.output_model6			(model[6]),
+		.output_model7			(model[7]),
+		.output_model8			(model[8]),
+		.output_model9			(model[9]),
+		.output_model10		(model[10]),
+		.output_model11		(model[11]),
+		.output_model12		(model[12]),
+		.output_model13		(model[13]),
+		.output_model14		(model[14]),
+		.output_model15		(model[15]),
+		.output_model16		(model[16]),
+		.output_model17		(model[17]),
+		.output_model18		(model[18]),
+		.output_model19		(model[19]),
+		.output_model20		(model[20]),
+		.output_model21		(model[21]),
+		.output_model22		(model[22]),
+		.output_model23		(model[23]),
+		.output_model24		(model[24]),
+		.output_model25		(model[25])
+);
+generate
+	genvar p;
+	for(p=1;p<=25;p=p+1)
+		begin :in_neuron
+		in_neuron u_in_neuron(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.input_model 	(model[p]), 
+			
+			.out_spike		(pre[p])
+		);
+		end
+endgenerate
+//申明突触阵列
+generate
+	genvar n;
+	for(n=1;n<=25;n=n+1)
+		begin :synapsis0
+		synapsis u0_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[n]),
+			.random_weight	(random_synapsis0[n]),
+			.post_in		  	(post[0]),
+			
+			.weight_up	  	(weight_up0[n]),
+			.weight_down  	(weight_down0[n])
+		);
+		end
+endgenerate
+generate
+	genvar m;
+	for(m=1;m<=25;m=m+1)
+		begin :synapsis1
+		synapsis u1_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[m]),
+			.random_weight	(random_synapsis1[m]),
+			.post_in		  	(post[1]),
+			
+			.weight_up	  	(weight_up1[m]),
+			.weight_down  	(weight_down1[m])
+		);
+		end
+endgenerate
+generate
+	genvar i;
+	for(i=1;i<=25;i=i+1)
+		begin :synapsis2
+		synapsis u2_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[i]),
+			.random_weight	(random_synapsis2[i]),
+			.post_in		  	(post[2]),
+			
+			.weight_up	  	(weight_up2[i]),
+			.weight_down  	(weight_down2[i])
+		);
+		end
+endgenerate
+generate
+	genvar j;
+	for(j=1;j<=25;j=j+1)
+		begin :synapsis3
+		synapsis u3_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[j]),
+			.random_weight	(random_synapsis3[j]),
+			.post_in		  	(post[3]),
+			
+			.weight_up	  	(weight_up3[j]),
+			.weight_down  	(weight_down3[j])
+		);
+		end
+endgenerate
+generate
+	genvar k;
+	for(k=1;k<=25;k=k+1)
+		begin :synapsis4
+		synapsis u4_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[k]),
+			.random_weight	(random_synapsis4[k]),
+			.post_in		  	(post[4]),
+			
+			.weight_up	  	(weight_up4[k]),
+			.weight_down  	(weight_down4[k])
+		);
+		end
+endgenerate
+generate
+	genvar h;
+	for(h=1;h<=25;h=h+1)
+		begin :synapsis5
+		synapsis u5_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[h]),
+			.random_weight	(random_synapsis5[h]),
+			.post_in		  	(post[5]),
+			
+			.weight_up	  	(weight_up5[h]),
+			.weight_down  	(weight_down5[h])
+		);
+		end
+endgenerate
+generate
+	genvar t;
+	for(t=1;t<=25;t=t+1)
+		begin :synapsis6
+		synapsis u6_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[t]),
+			.random_weight	(random_synapsis6[t]),
+			.post_in		  	(post[6]),
+			
+			.weight_up	  	(weight_up6[t]),
+			.weight_down  	(weight_down6[t])
+		);
+		end
+endgenerate
+generate
+	genvar y;
+	for(y=1;y<=25;y=y+1)
+		begin :synapsis7
+		synapsis u7_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[y]),
+			.random_weight	(random_synapsis7[y]),
+			.post_in		  	(post[7]),
+			
+			.weight_up	  	(weight_up7[y]),
+			.weight_down  	(weight_down7[y])
+		);
+		end
+endgenerate
+generate
+	genvar r;
+	for(r=1;r<=25;r=r+1)
+		begin :synapsis8
+		synapsis u8_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[r]),
+			.random_weight	(random_synapsis8[r]),
+			.post_in		  	(post[8]),
+			
+			.weight_up	  	(weight_up8[r]),
+			.weight_down  	(weight_down8[r])
+		);
+		end
+endgenerate
+generate
+	genvar l;
+	for(l=1;l<=25;l=l+1)
+		begin :synapsis9
+		synapsis u9_synapsis(
+			.clk				(clk),
+			.rst_n			(rst_n),
+			.learn			(learn),
+			.pre				(pre[l]),
+			.random_weight	(random_synapsis9[l]),
+			.post_in		  	(post[9]),
+			
+			.weight_up	  	(weight_up9[l]),
+			.weight_down  	(weight_down9[l])
+		);
+		end
+endgenerate
+//输出神经元
+out_neuron u0_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition0),//横向抑制信号
+		.weight_up			(weight_up0),
+		.weight_down		(weight_down0),
+		
+		.spike				(spike[0]),
+		.out_inhi			(out_inhi0),//抑制信号
+		.post					(post[0])
+);
+out_neuron u1_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition1),//横向抑制信号
+		.weight_up			(weight_up1),
+		.weight_down		(weight_down1),
+		
+		.spike				(spike[1]),
+		.out_inhi			(out_inhi1),//抑制信号
+		.post					(post[1])
+);
+out_neuron u2_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition2),//横向抑制信号
+		.weight_up			(weight_up2),
+		.weight_down		(weight_down2),
+		
+		.spike				(spike[2]),
+		.out_inhi			(out_inhi2),//抑制信号
+		.post					(post[2])
+);
+out_neuron u3_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition3),//横向抑制信号
+		.weight_up			(weight_up3),
+		.weight_down		(weight_down3),
+		
+		.spike				(spike[3]),
+		.out_inhi			(out_inhi3),//抑制信号
+		.post					(post[3])
+);
+out_neuron u4_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition4),//横向抑制信号
+		.weight_up			(weight_up4),
+		.weight_down		(weight_down4),
+		
+		.spike				(spike[4]),
+		.out_inhi			(out_inhi4),//抑制信号
+		.post					(post[4])
+);
+out_neuron u5_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition5),//横向抑制信号
+		.weight_up			(weight_up5),
+		.weight_down		(weight_down5),
+		
+		.spike				(spike[5]),
+		.out_inhi			(out_inhi5),//抑制信号
+		.post					(post[5])
+);
+out_neuron u6_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition6),//横向抑制信号
+		.weight_up			(weight_up6),
+		.weight_down		(weight_down6),
+		
+		.spike				(spike[6]),
+		.out_inhi			(out_inhi6),//抑制信号
+		.post					(post[6])
+);
+out_neuron u7_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition7),//横向抑制信号
+		.weight_up			(weight_up7),
+		.weight_down		(weight_down7),
+		
+		.spike				(spike[7]),
+		.out_inhi			(out_inhi7),//抑制信号
+		.post					(post[7])
+);
+out_neuron u8_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition8),//横向抑制信号
+		.weight_up			(weight_up8),
+		.weight_down		(weight_down8),
+		
+		.spike				(spike[8]),
+		.out_inhi			(out_inhi8),//抑制信号
+		.post					(post[8])
+);
+out_neuron u9_out_neuron(
+		.clk					(clk),
+		.rst_n				(rst_n),
+		.learn				(learn),
+		.inhibition 		(inhibition9),//横向抑制信号
+		.weight_up			(weight_up9),
+		.weight_down		(weight_down9),
+		
+		.spike				(spike[9]),
+		.out_inhi			(out_inhi9),//抑制信号
+		.post					(post[9])
+);
+endmodule
